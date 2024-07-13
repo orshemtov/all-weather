@@ -30,31 +30,39 @@ class Portfolio(BaseModel):
     allocations: list[Allocation]
     positions: list[Position]
 
-    def allocate(self) -> list[Instruction]:
+    def allocate(self, prices: dict[str, float] | None = None) -> list[Instruction]:
         instructions = []
         positions = [position.symbol for position in self.positions]
 
         for allocation in self.allocations:
             if allocation.symbol in positions:
+                # Get the price of the asset, if it is provided
+                price = prices.get(allocation.symbol) if prices else None
+
                 # Adjust an existing position
-                instruction = self._adjust(allocation.symbol, allocation.percent)
+                instruction = self._adjust(allocation.symbol, allocation.percent, price)
                 if not instruction:
                     # There is no need to adjust this position
                     continue
                 instructions.append(instruction)
             else:
                 # Add a new position
-                instruction = self._add(allocation.symbol, allocation.percent)
+
+                # Get the price of the asset, if it is provided
+                price = prices.get(allocation.symbol) if prices else None
+
+                instruction = self._add(allocation.symbol, allocation.percent, price)
                 instructions.append(instruction)
 
         return instructions
 
-    def _add(self, symbol: str, allocation: float) -> Instruction:
+    def _add(self, symbol: str, allocation: float, price: float | None = None) -> Instruction:
         "Add a new position"
         assert allocation > 0 and allocation <= 1, "Allocation must be a percentage"
 
         # Get the price of the asset
-        price = get_price(symbol)
+        if not price:
+            price = get_price(symbol)
 
         # The part of the portfolio that should be allocated to this asset
         quantity = (allocation * self.value) // price
@@ -67,12 +75,13 @@ class Portfolio(BaseModel):
             description="New position",
         )
 
-    def _adjust(self, symbol: str, allocation: float) -> Instruction | None:
+    def _adjust(self, symbol: str, allocation: float, price: float | None = None) -> Instruction | None:
         """Adjust an existing position"""
         assert allocation > 0 and allocation <= 1, "Allocation must be a percentage"
 
         # Get the price of the asset
-        price = get_price(symbol)
+        if not price:
+            price = get_price(symbol)
 
         # Calculate the difference from the current position allocation to the target allocation
         position = next((position for position in self.positions if position.symbol == symbol))
