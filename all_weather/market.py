@@ -33,4 +33,5 @@ def get_multiple_historical_data(symbols: list[str], period: Period = "10y") -> 
         data[symbol] = prices
     prices = pd.DataFrame(data)
     prices = prices.round(2)
+    prices = prices.dropna()
     return prices

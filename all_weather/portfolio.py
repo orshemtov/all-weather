@@ -25,10 +25,12 @@ class Instruction(BaseModel):
         return f"{self.symbol:<10} {self.action:<10} {self.quantity:<10} @ ${self.price:<10.2f} | {self.description}"
 
 
-class Portfolio(BaseModel):
-    value: float
-    allocations: list[Allocation]
-    positions: list[Position]
+class Portfolio:
+    def __init__(self, value: float, allocations: list[Allocation]):
+        self.value = value
+        self.cash = value
+        self.allocations = allocations
+        self.positions = [Position(symbol=allocation.symbol, quantity=0) for allocation in self.allocations]
 
     def allocate(self, prices: dict[str, float] | None = None) -> list[Instruction]:
         instructions = []
